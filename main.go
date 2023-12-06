@@ -10,18 +10,22 @@ import (
 	"webserver/server"
 )
 
-var port string
+var (
+	host string
+	port string
+)
 
 func init() {
+	flag.StringVar(&host, "host", "localhost", "listening host ip")
 	flag.StringVar(&port, "p", "8080", "listening port number")
-	flag.StringVar(&server.WebRoot, "w", "www", "filepath to static web resouces")
+	flag.StringVar(&server.WebRoot, "w", "/www", "filepath to static web resouces")
 	flag.BoolVar(&server.EnableGzip, "gzip", true, "enable gzip")
 	flag.Parse()
 }
 
 func main() {
 	srv := &http.Server{
-		Addr:           net.JoinHostPort("", port),
+		Addr:           net.JoinHostPort(host, port),
 		Handler:        server.NewRouter(),
 		MaxHeaderBytes: 1 << 20,
 	}
@@ -34,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("listening on:", srv.Addr)
+	fmt.Printf("\n >> %s http://localhost:%s/\n", "local:", port)
 
 	if err := srv.Serve(ln); err != http.ErrServerClosed {
 		log.Fatal(err)
