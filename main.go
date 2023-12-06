@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -24,7 +25,18 @@ func main() {
 		Handler:        server.NewRouter(),
 		MaxHeaderBytes: 1 << 20,
 	}
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+	if srv.Addr == "" {
+		srv.Addr = ":http"
+	}
+
+	ln, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("listening on:", srv.Addr)
+
+	if err := srv.Serve(ln); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }

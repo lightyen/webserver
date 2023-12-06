@@ -28,11 +28,14 @@ var (
 	}
 )
 
-func buildEtags() {
+func buildEtags() error {
 	mu.Lock()
 	defer mu.Unlock()
 	etags = make(map[string]string)
-	_ = filepath.Walk(WebRoot, func(filename string, f os.FileInfo, err error) error {
+	return filepath.Walk(WebRoot, func(filename string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if f.IsDir() {
 			return nil
 		}
@@ -56,7 +59,9 @@ func getAcceptEncoding(h http.Header) string {
 }
 
 func fileServe() gin.HandlerFunc {
-	buildEtags()
+	if err := buildEtags(); err != nil {
+		panic(err)
+	}
 
 	fs := static.LocalFile(WebRoot, false)
 	serve := http.StripPrefix("/", http.FileServer(fs))

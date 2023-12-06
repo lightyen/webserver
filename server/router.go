@@ -5,13 +5,10 @@ import (
 )
 
 func NewRouter() *gin.Engine {
-	e := gin.Default()
-
+	gin.SetMode(gin.ReleaseMode)
+	e := gin.New()
 	e.Use(recovery())
-
 	e.NoRoute(fileServe())
-
 	_ = e.Group("/", fallback(false))
-
 	return e
 }
