@@ -1,4 +1,4 @@
-module webserver
+module srv
 
 go 1.21.4
 

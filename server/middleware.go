@@ -2,7 +2,7 @@ package server
 
 import (
 	"log"
-	"webserver/errtrace"
+	"srv/errtrace"
 
 	"github.com/gin-gonic/gin"
 )

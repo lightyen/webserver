@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"webserver/server"
+	"srv/server"
 )
 
 var (
