@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -15,8 +14,6 @@ import (
 var (
 	WebRoot    string
 	EnableGzip bool
-	mu         sync.RWMutex
-	etags      map[string]string
 	gzPool     = sync.Pool{
 		New: func() interface{} {
 			gz, err := gzip.NewWriterLevel(io.Discard, gzip.DefaultCompression)
@@ -28,40 +25,11 @@ var (
 	}
 )
 
-func buildEtags() error {
-	mu.Lock()
-	defer mu.Unlock()
-	etags = make(map[string]string)
-	return filepath.Walk(WebRoot, func(filename string, f os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if f.IsDir() {
-			return nil
-		}
-		data, err := etag(filename)
-		if err != nil {
-			return err
-		}
-		etags[filename] = data
-		return nil
-	})
-}
-
-func getEtag(filename string) string {
-	mu.RLock()
-	defer mu.RUnlock()
-	return etags[filename]
-}
-
 func getAcceptEncoding(h http.Header) string {
 	return h.Get("Accept-Encoding")
 }
 
 func fileServe() gin.HandlerFunc {
-	if err := buildEtags(); err != nil {
-		panic(err)
-	}
 
 	fs := static.LocalFile(WebRoot, false)
 	serve := http.StripPrefix("/", http.FileServer(fs))
@@ -69,7 +37,7 @@ func fileServe() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.URL.Path != "/" && fs.Exists("/", c.Request.URL.Path) {
 			filename := filepath.Join(WebRoot, c.Request.URL.Path)
-			if eTag := getEtag(filename); eTag != "" {
+			if eTag, _ := etag(filename); eTag != "" {
 				c.Header("Cache-Control", "max-age=30")
 				c.Header("Etag", eTag)
 			}
@@ -118,7 +86,7 @@ func fallback(useAny bool) gin.HandlerFunc {
 
 		if a := ParseAccept(c.Request.Header.Get("Accept")); a.Contains("text/html") || (useAny && a.Contains("*/*")) {
 			filename := filepath.Join(WebRoot, "index.html")
-			eTag := getEtag(filename)
+			eTag, _ := etag(filename)
 			im := c.Request.Header.Get("If-Match")
 			if im != "" && im == eTag {
 				c.Status(http.StatusNotModified)
